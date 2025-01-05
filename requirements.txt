@@ -1,2 +1,4 @@
 ollama==0.4.5
 fastapi[standard]==0.115.6
+pydantic==2.10.4
+pyyaml==6.0.2

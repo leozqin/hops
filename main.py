@@ -12,13 +12,15 @@ from ollama._types import (
 )
 from pydantic import BaseModel, ConfigDict
 from random import choice
-from typing import Set, Mapping, Union, Iterator, List, Sequence, Optional
+from typing import Mapping, Union, Iterator, List, Sequence, Optional, Any
 from datetime import datetime
-from types import GeneratorType
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import PlainTextResponse, StreamingResponse, JSONResponse
 from logging import getLogger
 from contextlib import asynccontextmanager
+from yaml import SafeLoader, load
+from os import environ
+from pathlib import PosixPath
 
 logger = getLogger("uvicorn.error")
 
@@ -39,6 +41,7 @@ class CustomListResponse(BaseModel):
 class ProxyClient(BaseModel, frozen=True):
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
+    id: str
     host: str
     ollama_client: OllamaClient
     models: Sequence[ListModel]
@@ -60,23 +63,33 @@ class ModelNotFoundError(Exception):
         return f"model {self.model} was not found in any configured host"
 
 
-hosts = ["ollama0:11434"]
+DEFAULT_HOSTS_PATH = PosixPath(__file__).parent.joinpath("data", "hosts.yml")
+hosts_path = environ.get("DATA_DIR", DEFAULT_HOSTS_PATH)
+
+
+async def read_hosts_file() -> List[Mapping[str, Any]]:
+    with open(hosts_path, "r") as fp:
+        return load(fp, Loader=SafeLoader)
+
+
 clients: Mapping[str, ProxyClient] = {}
 supported: Mapping[str, List[ProxyClient]] = {}
 
 
 async def discover_hosts():
-    for host in hosts:
-        host_client = OllamaClient(host=host)
+    for host in await read_hosts_file():
+        id = host.pop("id")
+        hostname = host["host"]
+        host_client = OllamaClient(**host)
         models = host_client.list()
 
         list_models = [ListModel(name=i.model, **i.model_dump()) for i in models.models]
 
         proxy_client = ProxyClient(
-            host=host, ollama_client=host_client, models=list_models
+            id=id, host=hostname, ollama_client=host_client, models=list_models
         )
 
-        clients.update({host: proxy_client})
+        clients.update({hostname: proxy_client})
 
 
 async def refresh_model_registry():
@@ -188,7 +201,9 @@ async def show(req: ShowRequest):
     resp = client.show(**req.model_dump())
 
     # resp attr is modelinfo, but the response object wants model_info
-    return ShowResponse(**resp.model_dump(exclude="modelinfo"), model_info=resp.modelinfo)
+    return ShowResponse(
+        **resp.model_dump(exclude="modelinfo"), model_info=resp.modelinfo
+    )
 
 
 @app.get("/", response_class=PlainTextResponse)
