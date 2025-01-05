@@ -1,5 +1,5 @@
 # HOPS
-Heterogenous Ollama Proxy Server (styled as HOPS or `hops`) is a load-balancing reverse proxy server that enables you to address a fleet of diverse/heterogenous Ollama instances as a single one. 
+Heterogeneous Ollama Proxy Server (styled as HOPS or `hops`) is a load-balancing reverse proxy server that enables you to address a fleet of diverse/heterogeneous Ollama instances as a single one. 
 
 The benefit of this approach is that you can scale inference throughput by using any cheap consumer-grade hardware, and you don't need to route inferences to different fleets based on their model needs nor acquire numerous of the same expensive GPUs. 
 
