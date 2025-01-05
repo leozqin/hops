@@ -1,0 +1,43 @@
+name: multi-llm
+services:
+  smol-1:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        - OLLAMA_MODEL_TAG=smollm2:135m-instruct-q4_0
+    environment:
+      - OLLAMA_NUM_PARALLEL=4
+    ports:
+      - 8001:11434
+  smol-2:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        - OLLAMA_MODEL_TAG=smollm2:135m-instruct-q4_0
+    environment:
+      - OLLAMA_NUM_PARALLEL=4
+    ports:
+      - 8002:11434
+  llama-3:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        - OLLAMA_MODEL_TAG=llama3.2:1b-instruct-q2_K
+    environment:
+      - OLLAMA_NUM_PARALLEL=4
+    ports:
+      - 8003:11434
+  llama-4:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        - OLLAMA_MODEL_TAG=llama3.2:1b-instruct-q2_K
+    environment:
+      - OLLAMA_NUM_PARALLEL=4
+    ports:
+      - 8004:11434
+    
