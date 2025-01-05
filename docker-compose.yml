@@ -1,0 +1,13 @@
+name: hops
+services:
+  proxy:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: always
+    ports:
+      - 11434:11434
+    environment:
+      - OLLAMA_HOSTS=/data/hosts.yml
+    volumes:
+      - ~/hops/data:/data

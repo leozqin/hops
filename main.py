@@ -64,7 +64,7 @@ class ModelNotFoundError(Exception):
 
 
 DEFAULT_HOSTS_PATH = PosixPath(__file__).parent.joinpath("data", "hosts.yml")
-hosts_path = environ.get("DATA_DIR", DEFAULT_HOSTS_PATH)
+hosts_path = environ.get("OLLAMA_HOSTS", DEFAULT_HOSTS_PATH)
 
 
 async def read_hosts_file() -> List[Mapping[str, Any]]:
