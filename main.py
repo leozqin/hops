@@ -53,6 +53,10 @@ class EvalResponse(BaseModel):
     message: str
 
 
+class VersionResponse(BaseModel):
+    version: str
+
+
 class ModelNotFoundError(Exception):
 
     def __init__(self, model: str):
@@ -138,16 +142,24 @@ async def chat(req: ChatRequest):
     except ModelNotFoundError as e:
         raise HTTPException(status_code=404, detail=e.message)
 
-    resp: Union[ChatResponse, Iterator[ChatResponse]] = client.chat(**req.model_dump())
+    resp: Union[ChatResponse, Iterator[ChatResponse]] = client.chat(
+        **req.model_dump(exclude_none=True, exclude_unset=True, round_trip=True)
+    )
 
     async def streamer(iter: Iterator[ChatResponse]):
         for i in iter:
-            yield i.model_dump_json()
+            yield i.model_dump_json(
+                exclude_none=True, exclude_unset=True, round_trip=True
+            ) + "\n"
 
     if stream:
-        return StreamingResponse(content=streamer(resp))
+        return StreamingResponse(content=streamer(resp), media_type="application/x-ndjson")
     else:
-        return JSONResponse(content=resp.model_dump())
+        return JSONResponse(
+            content=resp.model_dump(
+                exclude_none=True, exclude_unset=True, round_trip=True
+            )
+        )
 
 
 @app.post("/api/generate")
@@ -156,23 +168,28 @@ async def generate(
 ):
     model = req.model
     stream = req.stream
+
     try:
         client = await pick_random_supported_client(model=model)
     except ModelNotFoundError as e:
         raise HTTPException(status_code=404, detail=e.message)
 
     resp: Union[GenerateResponse, Iterator[GenerateResponse]] = client.generate(
-        **req.model_dump()
+        **req.model_dump(exclude_none=True, exclude_unset=True, round_trip=True)
     )
 
     async def streamer(iter: Iterator[GenerateResponse]):
         for i in iter:
-            yield i.model_dump_json()
+            yield i.model_dump_json(exclude_none=True, exclude_unset=True) + "\n"
 
     if stream:
-        return StreamingResponse(content=streamer(resp))
+        return StreamingResponse(content=streamer(resp), media_type="application/x-ndjson")
     else:
-        return JSONResponse(content=resp.model_dump())
+        return JSONResponse(
+            content=resp.model_dump(
+                exclude_none=True, exclude_unset=True, round_trip=True
+            )
+        )
 
 
 @app.post("/api/embed")
@@ -185,9 +202,13 @@ async def embed(
     except ModelNotFoundError as e:
         raise HTTPException(status_code=404, detail=e.message)
 
-    resp = client.embed(**req.model_dump())
+    resp = client.embed(
+        **req.model_dump(exclude_none=True, exclude_unset=True, round_trip=True)
+    )
 
-    return EmbedResponse(**resp.model_dump())
+    return EmbedResponse(
+        **resp.model_dump(exclude_none=True, exclude_unset=True, round_trip=True)
+    )
 
 
 @app.post("/api/show")
@@ -198,7 +219,9 @@ async def show(req: ShowRequest):
     except ModelNotFoundError as e:
         raise HTTPException(status_code=404, detail=e.message)
 
-    resp = client.show(**req.model_dump())
+    resp = client.show(
+        **req.model_dump(exclude_none=True, exclude_unset=True, round_trip=True)
+    )
 
     # resp attr is modelinfo, but the response object wants model_info
     return ShowResponse(
@@ -225,3 +248,8 @@ async def list_tags() -> CustomListResponse:
             models.update({model.model: model})
 
     return CustomListResponse(models=list(models.values()))
+
+
+@app.get("/api/version")
+async def version() -> VersionResponse:
+    return VersionResponse(version="0.5.4")
