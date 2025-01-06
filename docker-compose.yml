@@ -10,4 +10,4 @@ services:
     environment:
       - OLLAMA_HOSTS=/data/hosts.yml
     volumes:
-      - ~/hops/data:/data
+      - /home/leo/hops/data:/data
